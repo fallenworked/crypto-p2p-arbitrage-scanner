@@ -1,0 +1,19 @@
+import redis.asyncio as redis
+from config import settings
+
+class RedisCache:
+    def __init__(self):
+        self.client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+
+    async def is_signal_duplicate(self, signal_key: str, ttl: int = 180) -> bool:
+        """
+        Записывает уникальный ключ связки в Redis с таймаутом TTL (по умолчанию 3 минуты).
+        Возвращает True, если ключ уже существовал (сигнал является дубликатом).
+        """
+        is_set = await self.client.set(f"p2p_signal:{signal_key}", "1", nx=True, ex=ttl)
+        return not is_set
+
+    async def close(self):
+        await self.client.close()
+
+redis_cache = RedisCache()
